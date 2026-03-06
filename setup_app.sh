@@ -103,22 +103,27 @@ if [[ "$MODE" == "create" ]]; then
   echo "  (Sessions are cached, so future runs won't need 2FA again.)"
   echo ""
 
-  # Run interactively (no --output json) so the CLI can prompt for 2FA
-  asc apps create \
+  # Capture output to extract app ID from create response
+  APP_CREATE_OUTPUT=$(asc apps create \
     --name "$APP_NAME" \
     --bundle-id "$BUNDLE_ID" \
     --sku "$SKU" \
     --platform "$PLATFORM" \
-    --primary-locale "$PRIMARY_LOCALE" 2>&1 || true
+    --primary-locale "$PRIMARY_LOCALE" 2>&1) || true
+  echo "$APP_CREATE_OUTPUT"
+
+  # Try to extract app ID directly from the create output
+  APP_ID=$(echo "$APP_CREATE_OUTPUT" | grep -o '"id":"[0-9]*"' | head -1 | grep -o '[0-9]*' || true)
 else
   step "Update mode — looking up existing app..."
 fi
 
-# Look up the app by bundle ID to get the app ID
-echo "Looking up app by bundle ID..."
-CREATE_OUTPUT=$(asc apps list --bundle-id "$BUNDLE_ID" --output json 2>&1)
-
-APP_ID=$(echo "$CREATE_OUTPUT" | jq -r '.data[0].id // empty' 2>/dev/null || true)
+# If we don't have an app ID yet, look it up by bundle ID
+if [[ -z "${APP_ID:-}" ]]; then
+  echo "Looking up app by bundle ID..."
+  CREATE_OUTPUT=$(asc apps list --bundle-id "$BUNDLE_ID" --output json 2>&1)
+  APP_ID=$(echo "$CREATE_OUTPUT" | jq -r '.data[0].id // empty' 2>/dev/null || true)
+fi
 
 if [[ -z "$APP_ID" ]]; then
   fail "Could not find app with bundle ID: $BUNDLE_ID"
@@ -126,6 +131,14 @@ if [[ -z "$APP_ID" ]]; then
 fi
 
 log "App ID: $APP_ID"
+
+# Check if the app has a live version (determines whether whatsNew is applicable)
+HAS_LIVE_VERSION=false
+LIVE_CHECK=$(asc versions list --app "$APP_ID" --state READY_FOR_SALE --output json 2>&1) || true
+LIVE_COUNT=$(echo "$LIVE_CHECK" | jq -r '.data | length // 0' 2>/dev/null || echo "0")
+if [[ "$LIVE_COUNT" -gt 0 ]]; then
+  HAS_LIVE_VERSION=true
+fi
 
 # ── Step 2: Update content rights ────────────────────────────────────────────
 
@@ -305,7 +318,7 @@ for ((i=0; i<LOC_COUNT; i++)); do
     LOC_ARGS=(--version "$VERSION_ID" --locale "$LOCALE" --output json)
     [[ -n "$DESC" ]] && LOC_ARGS+=(--description "$DESC")
     [[ -n "$KEYWORDS" ]] && LOC_ARGS+=(--keywords "$KEYWORDS")
-    [[ "$MODE" == "update" && -n "$WHATS_NEW" ]] && LOC_ARGS+=(--whats-new "$WHATS_NEW")
+    [[ "$HAS_LIVE_VERSION" == "true" && -n "$WHATS_NEW" ]] && LOC_ARGS+=(--whats-new "$WHATS_NEW")
     [[ -n "$PROMO_TEXT" ]] && LOC_ARGS+=(--promotional-text "$PROMO_TEXT")
     [[ -n "$SUPPORT_URL" ]] && LOC_ARGS+=(--support-url "$SUPPORT_URL")
     [[ -n "$MARKETING_URL" ]] && LOC_ARGS+=(--marketing-url "$MARKETING_URL")
