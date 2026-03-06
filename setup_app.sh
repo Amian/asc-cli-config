@@ -110,7 +110,7 @@ if [[ "$MODE" == "create" ]]; then
     --sku "$SKU" \
     --platform "$PLATFORM" \
     --primary-locale "$PRIMARY_LOCALE" 2>&1) || true
-  echo "$APP_CREATE_OUTPUT"
+  echo "$APP_CREATE_OUTPUT" | grep -v "Authenticated as"
 
   # Try to extract app ID directly from the create output
   APP_ID=$(echo "$APP_CREATE_OUTPUT" | grep -o '"id":"[0-9]*"' | head -1 | grep -o '[0-9]*' || true)
