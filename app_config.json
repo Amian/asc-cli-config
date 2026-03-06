@@ -1,0 +1,147 @@
+{
+  "app": {
+    "name": "Chicken Feet Identifier",
+    "bundle_id": "com.test.chickenFeetIdentifier",
+    "sku": "com.test.chickenFeetIdentifier",
+    "platform": "IOS",
+    "primary_locale": "en-US",
+    "content_rights": "DOES_NOT_USE_THIRD_PARTY_CONTENT"
+  },
+
+  "version": {
+    "version_string": "1.0",
+    "copyright": "Chicken Ltd",
+    "release_type": "MANUAL"
+  },
+
+  "categories": {
+    "primary": "REFERENCE",
+    "primary_subcategory_one": "",
+    "primary_subcategory_two": "",
+    "secondary": "UTILITIES",
+    "secondary_subcategory_one": "",
+    "secondary_subcategory_two": ""
+  },
+
+  "localizations": [
+    {
+      "locale": "en-US",
+      "subtitle": "Smart Poultry Foot Recognition",
+      "description": "Chicken Feet Identifier is designed to help you identify and document chicken foot characteristics quickly and accurately. With a simple and intuitive experience, the app is useful for poultry keepers, breeders, farmers, and anyone managing bird records. From checking visible traits to keeping your workflow organized, Chicken Feet Identifier makes poultry identification more efficient and accessible.",
+      "keywords": "chicken feet, poultry identifier, chicken app, poultry app, breeder tool, farming, livestock, poultry management",
+      "whats_new": "This update includes performance improvements and minor fixes to make Chicken Feet Identifier faster, smoother, and more reliable.",
+      "promotional_text": "A simple and efficient way to identify chicken feet and support your poultry workflow.",
+      "support_url": "https://chicken.com/contact/?app=chicken-feet-identifier",
+      "marketing_url": "",
+      "privacy_policy_url": "https://chicken.github.io/image-privacy"
+    }
+  ],
+
+  "age_rating": {
+    "alcohol_tobacco_or_drug_use_or_references": "NONE",
+    "contests": "NONE",
+    "gambling_simulated": "NONE",
+    "guns_or_other_weapons": "NONE",
+    "medical_or_treatment_information": "NONE",
+    "profanity_or_crude_humor": "NONE",
+    "sexual_content_graphic_and_nudity": "NONE",
+    "sexual_content_or_nudity": "NONE",
+    "horror_or_fear_themes": "NONE",
+    "mature_or_suggestive_themes": "NONE",
+    "violence_cartoon_or_fantasy": "NONE",
+    "violence_realistic": "NONE",
+    "violence_realistic_prolonged_graphic_or_sadistic": "NONE",
+    "advertising": false,
+    "age_assurance": false,
+    "gambling": false,
+    "health_or_wellness_topics": false,
+    "loot_box": false,
+    "messaging_and_chat": false,
+    "parental_controls": false,
+    "unrestricted_web_access": false,
+    "user_generated_content": false
+  },
+
+  "pricing": {
+    "base_territory": "USA",
+    "price_tier": "0",
+    "availability": {
+      "available_in_new_territories": true,
+      "territories": []
+    }
+  },
+
+  "subscriptions": {
+    "groups": [
+      {
+        "reference_name": "Premium Access",
+        "localizations": [
+          {
+            "locale": "en-US",
+            "name": "Premium Access",
+            "custom_app_name": ""
+          }
+        ],
+        "subscriptions": [
+          {
+            "ref_name": "Weekly Premium",
+            "product_id": "com.test.weekly",
+            "subscription_period": "ONE_WEEK",
+            "family_sharable": false,
+            "prices": [
+              {
+                "territory": "USA",
+                "tier": "1"
+              }
+            ],
+            "localizations": [
+              {
+                "locale": "en-US",
+                "name": "Weekly Premium",
+                "description": "Full access for one week."
+              }
+            ]
+          },
+          {
+            "ref_name": "Yearly Premium",
+            "product_id": "com.test.yearly",
+            "subscription_period": "ONE_YEAR",
+            "family_sharable": false,
+            "prices": [
+              {
+                "territory": "USA",
+                "tier": "5"
+              }
+            ],
+            "localizations": [
+              {
+                "locale": "en-US",
+                "name": "Yearly Premium",
+                "description": "Full access for one year."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+
+  "in_app_purchases": [],
+
+  "encryption": {
+    "contains_proprietary_cryptography": false,
+    "contains_third_party_cryptography": false,
+    "available_on_french_store": true,
+    "description": "This app does not use encryption."
+  },
+
+  "review_info": {
+    "contact_first_name": "Chicken",
+    "contact_last_name": "Feet",
+    "contact_phone": "+447861980199",
+    "contact_email": "chicken@mail.com",
+    "demo_username": "",
+    "demo_password": "",
+    "notes": ""
+  }
+}
