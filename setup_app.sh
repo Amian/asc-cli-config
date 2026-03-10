@@ -487,39 +487,34 @@ step "Setting pricing..."
 
 BASE_TERRITORY=$(cfg '.pricing.base_territory // empty')
 PRICE_TIER=$(cfg '.pricing.price_tier // empty')
+PRICE_TIER=${PRICE_TIER:-0}
+START_DATE=$(date -u +"%Y-%m-%d")
 
-if [[ -n "$PRICE_TIER" && "$PRICE_TIER" != "0" ]]; then
-  START_DATE=$(date -u +"%Y-%m-%d")
-  if ! PRICE_ERR=$(asc pricing schedule create \
-    --app "$APP_ID" \
-    --base-territory "$BASE_TERRITORY" \
-    --tier "$PRICE_TIER" \
-    --start-date "$START_DATE" \
-    --output json 2>&1); then
-    warn "Could not set pricing (check: asc pricing --help): $PRICE_ERR"
+SCHEDULE_ID=$(asc pricing schedule get --app "$APP_ID" --output json 2>&1 | jq -r '.data.id // empty' 2>/dev/null || true)
+if [[ -z "$SCHEDULE_ID" ]]; then
+  PRICE_ARGS=(--app "$APP_ID" --base-territory "$BASE_TERRITORY" --tier "$PRICE_TIER" --start-date "$START_DATE" --output json)
+  if ! PRICE_ERR=$(asc pricing schedule create "${PRICE_ARGS[@]}" 2>&1); then
+    warn "Could not set pricing schedule (check: asc pricing schedule create --help): $PRICE_ERR"
   else
     log "Pricing set (tier: $PRICE_TIER)"
   fi
 else
-  log "Pricing: free (default, tier 0)"
+  log "Pricing schedule already exists (ID: $SCHEDULE_ID)"
 fi
 
 # Set availability
 AVAIL_NEW=$(cfg '.pricing.availability.available_in_new_territories')
 TERRITORY_COUNT=$(jq '.pricing.availability.territories | length' "$CONFIG")
-
+AVAIL_ARGS=(--app "$APP_ID" --available true --available-in-new-territories "$AVAIL_NEW" --output json)
 if [[ "$TERRITORY_COUNT" -gt 0 ]]; then
   TERRITORIES=$(jq -r '.pricing.availability.territories | join(",")' "$CONFIG")
-  AVAIL_ARGS=(--app "$APP_ID" --territory "$TERRITORIES" --output json)
-  AVAIL_ARGS+=(--available-in-new-territories "$AVAIL_NEW" --available true)
+  AVAIL_ARGS+=(--territory "$TERRITORIES")
+fi
 
-  if ! AVAIL_ERR=$(asc pricing availability set "${AVAIL_ARGS[@]}" 2>&1); then
-    warn "Could not set availability: $AVAIL_ERR"
-  else
-    log "Availability configured"
-  fi
+if ! AVAIL_ERR=$(asc pricing availability set "${AVAIL_ARGS[@]}" 2>&1); then
+  warn "Could not set availability: $AVAIL_ERR"
 else
-  log "Availability: all territories (default)"
+  log "Availability configured"
 fi
 
 # ── Step 8: Create subscription groups & subscriptions ───────────────────────
@@ -622,6 +617,10 @@ for ((g=0; g<SUB_GROUP_COUNT; g++)); do
     fi
 
     log "Subscription '$SUB_REF' ID: $SUB_ID"
+    SUB_AVAIL_ARGS=(--id "$SUB_ID" --available-in-new-territories true --output json)
+    if ! SUB_AVAIL_ERR=$(asc subscriptions availability set "${SUB_AVAIL_ARGS[@]}" 2>&1); then
+      warn "Could not set subscription availability for '$SUB_REF': $SUB_AVAIL_ERR"
+    fi
 
     # Subscription prices
     SPRICE_COUNT=$(jq ".subscriptions.groups[$g].subscriptions[$s].prices | length" "$CONFIG")
