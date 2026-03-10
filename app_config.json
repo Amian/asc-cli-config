@@ -1,8 +1,8 @@
 {
   "app": {
     "name": "Chicken Feet Identifier",
-    "bundle_id": "com.test.chickenFeetIdentifier",
-    "sku": "com.test.chickenFeetIdentifier",
+    "bundle_id": "com.test1.chickenfeet",
+    "sku": "com.test1.chickenfeet",
     "platform": "IOS",
     "primary_locale": "en-US",
     "content_rights": "DOES_NOT_USE_THIRD_PARTY_CONTENT"
@@ -28,7 +28,7 @@
       "locale": "en-US",
       "subtitle": "Smart Poultry Foot Recognition",
       "description": "Chicken Feet Identifier is designed to help you identify and document chicken foot characteristics quickly and accurately. With a simple and intuitive experience, the app is useful for poultry keepers, breeders, farmers, and anyone managing bird records. From checking visible traits to keeping your workflow organized, Chicken Feet Identifier makes poultry identification more efficient and accessible.",
-      "keywords": "chicken feet, poultry identifier, chicken app, poultry app, breeder tool, farming, livestock, poultry management",
+      "keywords": "chicken feet",
       "whats_new": "This update includes performance improvements and minor fixes to make Chicken Feet Identifier faster, smoother, and more reliable.",
       "promotional_text": "A simple and efficient way to identify chicken feet and support your poultry workflow.",
       "support_url": "https://chicken.com/contact/?app=chicken-feet-identifier",
@@ -85,7 +85,7 @@
         "subscriptions": [
           {
             "ref_name": "Weekly Premium",
-            "product_id": "com.test.weekly",
+            "product_id": "com.chickenfeet.weekly",
             "subscription_period": "ONE_WEEK",
             "family_sharable": false,
             "prices": [
@@ -104,7 +104,7 @@
           },
           {
             "ref_name": "Yearly Premium",
-            "product_id": "com.test.yearly",
+            "product_id": "com.chickenfeet.yearly",
             "subscription_period": "ONE_YEAR",
             "family_sharable": false,
             "prices": [
