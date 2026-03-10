@@ -75,6 +75,7 @@ warn() { echo -e "${YELLOW}[SKIP]${NC} $1"; }
 fail() { echo -e "${RED}[FAIL]${NC} $1"; }
 step() { echo -e "\n${YELLOW}==>${NC} $1"; }
 
+APP_ID=$(cfg '.app.id // empty')
 APP_NAME=$(cfg '.app.name')
 BUNDLE_ID=$(cfg '.app.bundle_id')
 SKU=$(cfg '.app.sku')
@@ -365,7 +366,7 @@ if [[ "$PRIVACY_ENABLED" == "true" ]]; then
     PRIVACY_TWO_FACTOR=$(cfg '.privacy.two_factor_code // empty')
     PRIVACY_PUBLISH=$(jq -r 'if .privacy.publish != null then .privacy.publish | tostring else "true" end' "$CONFIG")
     PRIVACY_ALLOW_DELETES=$(jq -r 'if .privacy.allow_deletes != null then .privacy.allow_deletes | tostring else "true" end' "$CONFIG")
-    PRIVACY_FILE=$(mktemp "${TMPDIR:-/tmp}/asc-privacy.XXXXXX.json")
+    PRIVACY_FILE=$(mktemp "${TMPDIR:-/tmp}/asc-privacy.XXXXXX")
 
     jq '{
       schemaVersion: 1,
@@ -387,7 +388,19 @@ if [[ "$PRIVACY_ENABLED" == "true" ]]; then
     fi
 
     PRIVACY_READY=true
-    if ! asc web auth status "${WEB_STATUS_ARGS[@]}" --output json >/dev/null 2>&1; then
+    if [[ ${#WEB_STATUS_ARGS[@]} -gt 0 ]]; then
+      WEB_STATUS_OK=true
+      if ! asc web auth status "${WEB_STATUS_ARGS[@]}" --output json >/dev/null 2>&1; then
+        WEB_STATUS_OK=false
+      fi
+    else
+      WEB_STATUS_OK=true
+      if ! asc web auth status --output json >/dev/null 2>&1; then
+        WEB_STATUS_OK=false
+      fi
+    fi
+
+    if [[ "$WEB_STATUS_OK" != "true" ]]; then
       if [[ -z "$PRIVACY_APPLE_ID" ]]; then
         warn "No cached asc web auth session found for App Privacy. Set privacy.apple_id or run: asc web auth login --apple-id YOUR_APPLE_ID"
         PRIVACY_READY=false
@@ -404,7 +417,13 @@ if [[ "$PRIVACY_ENABLED" == "true" ]]; then
 
     if [[ "$PRIVACY_READY" == "true" ]]; then
       PRIVACY_PLAN_ARGS=(--app "$APP_ID" --file "$PRIVACY_FILE" --output json)
-      if ! PRIVACY_PLAN_OUTPUT=$(asc web privacy plan "${PRIVACY_PLAN_ARGS[@]}" "${WEB_PRIVACY_ARGS[@]}" 2>&1); then
+      if [[ ${#WEB_PRIVACY_ARGS[@]} -gt 0 ]]; then
+        PRIVACY_PLAN_CMD=(asc web privacy plan "${PRIVACY_PLAN_ARGS[@]}" "${WEB_PRIVACY_ARGS[@]}")
+      else
+        PRIVACY_PLAN_CMD=(asc web privacy plan "${PRIVACY_PLAN_ARGS[@]}")
+      fi
+
+      if ! PRIVACY_PLAN_OUTPUT=$("${PRIVACY_PLAN_CMD[@]}" 2>&1); then
         warn "Could not plan App Privacy changes (check: asc web privacy plan --help): $PRIVACY_PLAN_OUTPUT"
       else
         PLAN_ADDS=$(echo "$PRIVACY_PLAN_OUTPUT" | jq -r '.adds | length // 0' 2>/dev/null || echo "0")
@@ -417,14 +436,26 @@ if [[ "$PRIVACY_ENABLED" == "true" ]]; then
           PRIVACY_APPLY_ARGS+=(--allow-deletes --confirm)
         fi
 
-        if ! PRIVACY_APPLY_ERR=$(asc web privacy apply "${PRIVACY_APPLY_ARGS[@]}" "${WEB_PRIVACY_ARGS[@]}" 2>&1); then
+        if [[ ${#WEB_PRIVACY_ARGS[@]} -gt 0 ]]; then
+          PRIVACY_APPLY_CMD=(asc web privacy apply "${PRIVACY_APPLY_ARGS[@]}" "${WEB_PRIVACY_ARGS[@]}")
+        else
+          PRIVACY_APPLY_CMD=(asc web privacy apply "${PRIVACY_APPLY_ARGS[@]}")
+        fi
+
+        if ! PRIVACY_APPLY_ERR=$("${PRIVACY_APPLY_CMD[@]}" 2>&1); then
           warn "Could not apply App Privacy changes (check: asc web privacy apply --help): $PRIVACY_APPLY_ERR"
         else
           log "App Privacy declarations applied"
 
           if [[ "$PRIVACY_PUBLISH" == "true" ]]; then
             PRIVACY_PUBLISH_ARGS=(--app "$APP_ID" --confirm --output json)
-            if ! PRIVACY_PUBLISH_ERR=$(asc web privacy publish "${PRIVACY_PUBLISH_ARGS[@]}" "${WEB_PRIVACY_ARGS[@]}" 2>&1); then
+            if [[ ${#WEB_PRIVACY_ARGS[@]} -gt 0 ]]; then
+              PRIVACY_PUBLISH_CMD=(asc web privacy publish "${PRIVACY_PUBLISH_ARGS[@]}" "${WEB_PRIVACY_ARGS[@]}")
+            else
+              PRIVACY_PUBLISH_CMD=(asc web privacy publish "${PRIVACY_PUBLISH_ARGS[@]}")
+            fi
+
+            if ! PRIVACY_PUBLISH_ERR=$("${PRIVACY_PUBLISH_CMD[@]}" 2>&1); then
               warn "Could not publish App Privacy declarations (check: asc web privacy publish --help): $PRIVACY_PUBLISH_ERR"
             else
               log "App Privacy declarations published"
@@ -511,21 +542,34 @@ for ((g=0; g<SUB_GROUP_COUNT; g++)); do
   log "Subscription group '$GROUP_REF' ID: $GROUP_ID"
 
   # Group localizations
+  GROUP_LOC_LIST=$(asc subscriptions groups localizations list --group-id "$GROUP_ID" --output json 2>&1) || true
   GLOC_COUNT=$(jq ".subscriptions.groups[$g].localizations | length" "$CONFIG")
   for ((gl=0; gl<GLOC_COUNT; gl++)); do
     GLOC_LOCALE=$(cfg ".subscriptions.groups[$g].localizations[$gl].locale")
     GLOC_NAME=$(cfg ".subscriptions.groups[$g].localizations[$gl].name")
     GLOC_APP_NAME=$(cfg ".subscriptions.groups[$g].localizations[$gl].custom_app_name // empty")
 
-    GLOC_ARGS=(--group-id "$GROUP_ID" --locale "$GLOC_LOCALE" --name "$GLOC_NAME" --output json)
-    [[ -n "$GLOC_APP_NAME" ]] && GLOC_ARGS+=(--custom-app-name "$GLOC_APP_NAME")
+    GROUP_LOC_ID=$(echo "$GROUP_LOC_LIST" | jq -r --arg locale "$GLOC_LOCALE" '.data[] | select(.attributes.locale == $locale) | .id // empty' 2>/dev/null | head -1 || true)
 
-    if ! GLOC_ERR=$(asc subscriptions groups localizations create "${GLOC_ARGS[@]}" 2>&1); then
-      warn "Could not create group localization for $GLOC_LOCALE (may already exist): $GLOC_ERR"
+    if [[ -n "$GROUP_LOC_ID" ]]; then
+      GLOC_ARGS=(--id "$GROUP_LOC_ID" --name "$GLOC_NAME" --output json)
+      [[ -n "$GLOC_APP_NAME" ]] && GLOC_ARGS+=(--custom-app-name "$GLOC_APP_NAME")
+
+      if ! GLOC_ERR=$(asc subscriptions groups localizations update "${GLOC_ARGS[@]}" 2>&1); then
+        warn "Could not update group localization for $GLOC_LOCALE: $GLOC_ERR"
+      fi
+    else
+      GLOC_ARGS=(--group-id "$GROUP_ID" --locale "$GLOC_LOCALE" --name "$GLOC_NAME" --output json)
+      [[ -n "$GLOC_APP_NAME" ]] && GLOC_ARGS+=(--custom-app-name "$GLOC_APP_NAME")
+
+      if ! GLOC_ERR=$(asc subscriptions groups localizations create "${GLOC_ARGS[@]}" 2>&1); then
+        warn "Could not create group localization for $GLOC_LOCALE: $GLOC_ERR"
+      fi
     fi
   done
 
   # Create subscriptions in the group
+  SUBS_LIST=$(asc subscriptions list --group "$GROUP_ID" --output json 2>&1) || true
   SUB_COUNT=$(jq ".subscriptions.groups[$g].subscriptions | length" "$CONFIG")
   for ((s=0; s<SUB_COUNT; s++)); do
     SUB_REF=$(cfg ".subscriptions.groups[$g].subscriptions[$s].ref_name")
@@ -540,15 +584,31 @@ for ((g=0; g<SUB_GROUP_COUNT; g++)); do
       continue
     fi
 
-    SUB_ARGS=(--group "$GROUP_ID" --ref-name "$SUB_REF" --product-id "$SUB_PRODUCT" --subscription-period "$SUB_PERIOD" --output json)
-    [[ "$SUB_FAMILY" == "true" ]] && SUB_ARGS+=(--family-sharable)
+    SUB_ID=$(echo "$SUBS_LIST" | jq -r --arg product "$SUB_PRODUCT" --arg ref "$SUB_REF" '
+      .data[]
+      | select(.attributes.productId == $product or .attributes.referenceName == $ref)
+      | .id // empty
+    ' 2>/dev/null | head -1 || true)
 
-    SUB_OUTPUT=$(asc subscriptions create "${SUB_ARGS[@]}" 2>&1) || true
-    SUB_ID=$(echo "$SUB_OUTPUT" | jq -r '.data.id // .id // empty' 2>/dev/null || true)
+    if [[ -n "$SUB_ID" ]]; then
+      SUB_ARGS=(--id "$SUB_ID" --ref-name "$SUB_REF" --subscription-period "$SUB_PERIOD" --output json)
+      [[ "$SUB_FAMILY" == "true" ]] && SUB_ARGS+=(--family-sharable)
 
-    if [[ -z "$SUB_ID" ]]; then
-      warn "Could not create subscription '$SUB_REF'. It may already exist."
-      continue
+      if ! SUB_ERR=$(asc subscriptions update "${SUB_ARGS[@]}" 2>&1); then
+        warn "Could not update subscription '$SUB_REF': $SUB_ERR"
+        continue
+      fi
+    else
+      SUB_ARGS=(--group "$GROUP_ID" --ref-name "$SUB_REF" --product-id "$SUB_PRODUCT" --subscription-period "$SUB_PERIOD" --output json)
+      [[ "$SUB_FAMILY" == "true" ]] && SUB_ARGS+=(--family-sharable)
+
+      SUB_OUTPUT=$(asc subscriptions create "${SUB_ARGS[@]}" 2>&1) || true
+      SUB_ID=$(echo "$SUB_OUTPUT" | jq -r '.data.id // .id // empty' 2>/dev/null || true)
+
+      if [[ -z "$SUB_ID" ]]; then
+        warn "Could not create subscription '$SUB_REF': $SUB_OUTPUT"
+        continue
+      fi
     fi
 
     log "Subscription '$SUB_REF' ID: $SUB_ID"
@@ -572,17 +632,29 @@ for ((g=0; g<SUB_GROUP_COUNT; g++)); do
     done
 
     # Subscription localizations
+    SUB_LOC_LIST=$(asc subscriptions localizations list --subscription-id "$SUB_ID" --output json 2>&1) || true
     SLOC_COUNT=$(jq ".subscriptions.groups[$g].subscriptions[$s].localizations | length" "$CONFIG")
     for ((sl=0; sl<SLOC_COUNT; sl++)); do
       SL_LOCALE=$(cfg ".subscriptions.groups[$g].subscriptions[$s].localizations[$sl].locale")
       SL_NAME=$(cfg ".subscriptions.groups[$g].subscriptions[$s].localizations[$sl].name")
       SL_DESC=$(cfg ".subscriptions.groups[$g].subscriptions[$s].localizations[$sl].description // empty")
 
-      SLOC_ARGS=(--subscription-id "$SUB_ID" --locale "$SL_LOCALE" --name "$SL_NAME" --output json)
-      [[ -n "$SL_DESC" ]] && SLOC_ARGS+=(--description "$SL_DESC")
+      SUB_LOC_ID=$(echo "$SUB_LOC_LIST" | jq -r --arg locale "$SL_LOCALE" '.data[] | select(.attributes.locale == $locale) | .id // empty' 2>/dev/null | head -1 || true)
 
-      if ! SLOC_ERR=$(asc subscriptions localizations create "${SLOC_ARGS[@]}" 2>&1); then
-        warn "  Could not create subscription localization for $SL_LOCALE (may already exist): $SLOC_ERR"
+      if [[ -n "$SUB_LOC_ID" ]]; then
+        SLOC_ARGS=(--id "$SUB_LOC_ID" --name "$SL_NAME" --output json)
+        [[ -n "$SL_DESC" ]] && SLOC_ARGS+=(--description "$SL_DESC")
+
+        if ! SLOC_ERR=$(asc subscriptions localizations update "${SLOC_ARGS[@]}" 2>&1); then
+          warn "  Could not update subscription localization for $SL_LOCALE: $SLOC_ERR"
+        fi
+      else
+        SLOC_ARGS=(--subscription-id "$SUB_ID" --locale "$SL_LOCALE" --name "$SL_NAME" --output json)
+        [[ -n "$SL_DESC" ]] && SLOC_ARGS+=(--description "$SL_DESC")
+
+        if ! SLOC_ERR=$(asc subscriptions localizations create "${SLOC_ARGS[@]}" 2>&1); then
+          warn "  Could not create subscription localization for $SL_LOCALE: $SLOC_ERR"
+        fi
       fi
     done
   done
@@ -592,6 +664,7 @@ done
 
 step "Setting up in-app purchases..."
 
+IAP_LIST=$(asc iap list --app "$APP_ID" --output json 2>&1) || true
 IAP_COUNT=$(jq '.in_app_purchases | length' "$CONFIG")
 for ((i=0; i<IAP_COUNT; i++)); do
   IAP_TYPE=$(cfg ".in_app_purchases[$i].type")
@@ -601,15 +674,31 @@ for ((i=0; i<IAP_COUNT; i++)); do
 
   echo "  Creating IAP: $IAP_REF ($IAP_PRODUCT)"
 
-  IAP_ARGS=(--app "$APP_ID" --type "$IAP_TYPE" --ref-name "$IAP_REF" --product-id "$IAP_PRODUCT" --output json)
-  [[ "$IAP_FAMILY" == "true" ]] && IAP_ARGS+=(--family-sharable)
+  IAP_ID=$(echo "$IAP_LIST" | jq -r --arg product "$IAP_PRODUCT" --arg ref "$IAP_REF" '
+    .data[]
+    | select(.attributes.productId == $product or .attributes.referenceName == $ref)
+    | .id // empty
+  ' 2>/dev/null | head -1 || true)
 
-  IAP_OUTPUT=$(asc iap create "${IAP_ARGS[@]}" 2>&1) || true
-  IAP_ID=$(echo "$IAP_OUTPUT" | jq -r '.data.id // .id // empty' 2>/dev/null || true)
+  if [[ -n "$IAP_ID" ]]; then
+    IAP_ARGS=(--id "$IAP_ID" --ref-name "$IAP_REF" --output json)
+    [[ "$IAP_FAMILY" == "true" ]] && IAP_ARGS+=(--family-sharable)
 
-  if [[ -z "$IAP_ID" ]]; then
-    warn "Could not create IAP '$IAP_REF'. It may already exist."
-    continue
+    if ! IAP_ERR=$(asc iap update "${IAP_ARGS[@]}" 2>&1); then
+      warn "Could not update IAP '$IAP_REF': $IAP_ERR"
+      continue
+    fi
+  else
+    IAP_ARGS=(--app "$APP_ID" --type "$IAP_TYPE" --ref-name "$IAP_REF" --product-id "$IAP_PRODUCT" --output json)
+    [[ "$IAP_FAMILY" == "true" ]] && IAP_ARGS+=(--family-sharable)
+
+    IAP_OUTPUT=$(asc iap create "${IAP_ARGS[@]}" 2>&1) || true
+    IAP_ID=$(echo "$IAP_OUTPUT" | jq -r '.data.id // .id // empty' 2>/dev/null || true)
+
+    if [[ -z "$IAP_ID" ]]; then
+      warn "Could not create IAP '$IAP_REF': $IAP_OUTPUT"
+      continue
+    fi
   fi
 
   log "IAP '$IAP_REF' ID: $IAP_ID"
@@ -634,17 +723,29 @@ for ((i=0; i<IAP_COUNT; i++)); do
   fi
 
   # IAP localizations
+  IAP_LOC_LIST=$(asc iap localizations list --iap-id "$IAP_ID" --output json 2>&1) || true
   ILOC_COUNT=$(jq ".in_app_purchases[$i].localizations | length" "$CONFIG")
   for ((l=0; l<ILOC_COUNT; l++)); do
     IL_LOCALE=$(cfg ".in_app_purchases[$i].localizations[$l].locale")
     IL_NAME=$(cfg ".in_app_purchases[$i].localizations[$l].name")
     IL_DESC=$(cfg ".in_app_purchases[$i].localizations[$l].description // empty")
 
-    ILOC_ARGS=(--iap-id "$IAP_ID" --locale "$IL_LOCALE" --name "$IL_NAME" --output json)
-    [[ -n "$IL_DESC" ]] && ILOC_ARGS+=(--description "$IL_DESC")
+    IAP_LOC_ID=$(echo "$IAP_LOC_LIST" | jq -r --arg locale "$IL_LOCALE" '.data[] | select(.attributes.locale == $locale) | .id // empty' 2>/dev/null | head -1 || true)
 
-    if ! ILOC_ERR=$(asc iap localizations create "${ILOC_ARGS[@]}" 2>&1); then
-      warn "  Could not create IAP localization for $IL_LOCALE (may already exist): $ILOC_ERR"
+    if [[ -n "$IAP_LOC_ID" ]]; then
+      ILOC_ARGS=(--localization-id "$IAP_LOC_ID" --name "$IL_NAME" --output json)
+      [[ -n "$IL_DESC" ]] && ILOC_ARGS+=(--description "$IL_DESC")
+
+      if ! ILOC_ERR=$(asc iap localizations update "${ILOC_ARGS[@]}" 2>&1); then
+        warn "  Could not update IAP localization for $IL_LOCALE: $ILOC_ERR"
+      fi
+    else
+      ILOC_ARGS=(--iap-id "$IAP_ID" --locale "$IL_LOCALE" --name "$IL_NAME" --output json)
+      [[ -n "$IL_DESC" ]] && ILOC_ARGS+=(--description "$IL_DESC")
+
+      if ! ILOC_ERR=$(asc iap localizations create "${ILOC_ARGS[@]}" 2>&1); then
+        warn "  Could not create IAP localization for $IL_LOCALE: $ILOC_ERR"
+      fi
     fi
   done
 done
