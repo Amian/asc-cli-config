@@ -37,6 +37,69 @@
     }
   ],
 
+  "privacy": {
+    "enabled": true,
+    "apple_id": "",
+    "two_factor_code": "",
+    "publish": true,
+    "allow_deletes": true,
+    "data_usages": [
+      {
+        "category": "CRASH_DATA",
+        "purposes": ["APP_FUNCTIONALITY"],
+        "dataProtections": ["DATA_LINKED_TO_YOU"]
+      },
+      {
+        "category": "DEVICE_ID",
+        "purposes": ["ANALYTICS"],
+        "dataProtections": ["DATA_LINKED_TO_YOU"]
+      },
+      {
+        "category": "DEVICE_ID",
+        "purposes": ["DEVELOPERS_ADVERTISING"],
+        "dataProtections": ["DATA_NOT_LINKED_TO_YOU"]
+      },
+      {
+        "category": "DEVICE_ID",
+        "dataProtections": ["DATA_USED_TO_TRACK_YOU"]
+      },
+      {
+        "category": "OTHER_DIAGNOSTIC_DATA",
+        "purposes": ["ANALYTICS"],
+        "dataProtections": ["DATA_LINKED_TO_YOU"]
+      },
+      {
+        "category": "OTHER_USER_CONTENT",
+        "purposes": ["APP_FUNCTIONALITY"],
+        "dataProtections": ["DATA_LINKED_TO_YOU"]
+      },
+      {
+        "category": "PERFORMANCE_DATA",
+        "purposes": ["ANALYTICS"],
+        "dataProtections": ["DATA_LINKED_TO_YOU"]
+      },
+      {
+        "category": "PHOTOS_OR_VIDEOS",
+        "purposes": ["APP_FUNCTIONALITY"],
+        "dataProtections": ["DATA_LINKED_TO_YOU"]
+      },
+      {
+        "category": "PRODUCT_INTERACTION",
+        "purposes": ["ANALYTICS"],
+        "dataProtections": ["DATA_LINKED_TO_YOU"]
+      },
+      {
+        "category": "PRODUCT_INTERACTION",
+        "purposes": ["DEVELOPERS_ADVERTISING"],
+        "dataProtections": ["DATA_NOT_LINKED_TO_YOU"]
+      },
+      {
+        "category": "PRODUCT_INTERACTION",
+        "dataProtections": ["DATA_USED_TO_TRACK_YOU"]
+      }
+    ]
+  },
+
   "age_rating": {
     "alcohol_tobacco_or_drug_use_or_references": "NONE",
     "contests": "NONE",

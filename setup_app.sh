@@ -342,6 +342,104 @@ for ((i=0; i<LOC_COUNT; i++)); do
   log "Localization for $LOCALE done"
 done
 
+# ── Step 6b: Set app privacy declarations ───────────────────────────────────
+
+PRIVACY_ENABLED=$(jq -r '
+  if .privacy.enabled != null then
+    .privacy.enabled | tostring
+  elif .privacy.data_usages != null then
+    "true"
+  else
+    "false"
+  end
+' "$CONFIG")
+
+if [[ "$PRIVACY_ENABLED" == "true" ]]; then
+  step "Setting app privacy..."
+
+  PRIVACY_USAGE_COUNT=$(jq '.privacy.data_usages | length // 0' "$CONFIG")
+  if [[ "$PRIVACY_USAGE_COUNT" -eq 0 ]]; then
+    warn "Privacy enabled but privacy.data_usages is empty"
+  else
+    PRIVACY_APPLE_ID=$(cfg '.privacy.apple_id // empty')
+    PRIVACY_TWO_FACTOR=$(cfg '.privacy.two_factor_code // empty')
+    PRIVACY_PUBLISH=$(jq -r 'if .privacy.publish != null then .privacy.publish | tostring else "true" end' "$CONFIG")
+    PRIVACY_ALLOW_DELETES=$(jq -r 'if .privacy.allow_deletes != null then .privacy.allow_deletes | tostring else "true" end' "$CONFIG")
+    PRIVACY_FILE=$(mktemp "${TMPDIR:-/tmp}/asc-privacy.XXXXXX.json")
+
+    jq '{
+      schemaVersion: 1,
+      dataUsages: (.privacy.data_usages // [])
+    }' "$CONFIG" > "$PRIVACY_FILE"
+
+    WEB_STATUS_ARGS=()
+    WEB_LOGIN_ARGS=()
+    WEB_PRIVACY_ARGS=()
+
+    if [[ -n "$PRIVACY_APPLE_ID" ]]; then
+      WEB_STATUS_ARGS+=(--apple-id "$PRIVACY_APPLE_ID")
+      WEB_LOGIN_ARGS+=(--apple-id "$PRIVACY_APPLE_ID")
+      WEB_PRIVACY_ARGS+=(--apple-id "$PRIVACY_APPLE_ID")
+    fi
+    if [[ -n "$PRIVACY_TWO_FACTOR" ]]; then
+      WEB_LOGIN_ARGS+=(--two-factor-code "$PRIVACY_TWO_FACTOR")
+      WEB_PRIVACY_ARGS+=(--two-factor-code "$PRIVACY_TWO_FACTOR")
+    fi
+
+    PRIVACY_READY=true
+    if ! asc web auth status "${WEB_STATUS_ARGS[@]}" --output json >/dev/null 2>&1; then
+      if [[ -z "$PRIVACY_APPLE_ID" ]]; then
+        warn "No cached asc web auth session found for App Privacy. Set privacy.apple_id or run: asc web auth login --apple-id YOUR_APPLE_ID"
+        PRIVACY_READY=false
+      else
+        echo "  Authenticating asc web session for App Privacy..."
+        if ! WEB_LOGIN_ERR=$(asc web auth login "${WEB_LOGIN_ARGS[@]}" --output json 2>&1); then
+          warn "Could not authenticate asc web session for App Privacy: $WEB_LOGIN_ERR"
+          PRIVACY_READY=false
+        else
+          log "App Privacy web session authenticated"
+        fi
+      fi
+    fi
+
+    if [[ "$PRIVACY_READY" == "true" ]]; then
+      PRIVACY_PLAN_ARGS=(--app "$APP_ID" --file "$PRIVACY_FILE" --output json)
+      if ! PRIVACY_PLAN_OUTPUT=$(asc web privacy plan "${PRIVACY_PLAN_ARGS[@]}" "${WEB_PRIVACY_ARGS[@]}" 2>&1); then
+        warn "Could not plan App Privacy changes (check: asc web privacy plan --help): $PRIVACY_PLAN_OUTPUT"
+      else
+        PLAN_ADDS=$(echo "$PRIVACY_PLAN_OUTPUT" | jq -r '.adds | length // 0' 2>/dev/null || echo "0")
+        PLAN_UPDATES=$(echo "$PRIVACY_PLAN_OUTPUT" | jq -r '.updates | length // 0' 2>/dev/null || echo "0")
+        PLAN_DELETES=$(echo "$PRIVACY_PLAN_OUTPUT" | jq -r '.deletes | length // 0' 2>/dev/null || echo "0")
+        log "App Privacy plan ready (adds: $PLAN_ADDS, updates: $PLAN_UPDATES, deletes: $PLAN_DELETES)"
+
+        PRIVACY_APPLY_ARGS=(--app "$APP_ID" --file "$PRIVACY_FILE" --output json)
+        if [[ "$PRIVACY_ALLOW_DELETES" == "true" ]]; then
+          PRIVACY_APPLY_ARGS+=(--allow-deletes --confirm)
+        fi
+
+        if ! PRIVACY_APPLY_ERR=$(asc web privacy apply "${PRIVACY_APPLY_ARGS[@]}" "${WEB_PRIVACY_ARGS[@]}" 2>&1); then
+          warn "Could not apply App Privacy changes (check: asc web privacy apply --help): $PRIVACY_APPLY_ERR"
+        else
+          log "App Privacy declarations applied"
+
+          if [[ "$PRIVACY_PUBLISH" == "true" ]]; then
+            PRIVACY_PUBLISH_ARGS=(--app "$APP_ID" --confirm --output json)
+            if ! PRIVACY_PUBLISH_ERR=$(asc web privacy publish "${PRIVACY_PUBLISH_ARGS[@]}" "${WEB_PRIVACY_ARGS[@]}" 2>&1); then
+              warn "Could not publish App Privacy declarations (check: asc web privacy publish --help): $PRIVACY_PUBLISH_ERR"
+            else
+              log "App Privacy declarations published"
+            fi
+          else
+            warn "App Privacy changes applied but not published (privacy.publish=false)"
+          fi
+        fi
+      fi
+    fi
+
+    rm -f "$PRIVACY_FILE"
+  fi
+fi
+
 # ── Step 7: Set pricing ──────────────────────────────────────────────────────
 
 step "Setting pricing..."
