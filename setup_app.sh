@@ -197,6 +197,16 @@ fi
 
 if [[ -n "$VERSION_ID" ]]; then
   log "Version ID: $VERSION_ID"
+  VERSION_UPDATE_ARGS=(--version-id "$VERSION_ID" --output json)
+  [[ -n "$COPYRIGHT" ]] && VERSION_UPDATE_ARGS+=(--copyright "$COPYRIGHT")
+  [[ -n "$RELEASE_TYPE" ]] && VERSION_UPDATE_ARGS+=(--release-type "$RELEASE_TYPE")
+  if [[ ${#VERSION_UPDATE_ARGS[@]} -gt 2 ]]; then
+    if ! VERSION_UPDATE_ERR=$(asc versions update "${VERSION_UPDATE_ARGS[@]}" 2>&1); then
+      warn "Could not update version metadata: $VERSION_UPDATE_ERR"
+    else
+      log "Version metadata refreshed"
+    fi
+  fi
 else
   warn "Could not create or find version. Some steps may fail."
 fi
@@ -794,7 +804,9 @@ if [[ -n "${VERSION_ID:-}" ]]; then
     [[ -n "$REVIEW_LAST" ]] && REVIEW_FIELDS+=(--contact-last-name "$REVIEW_LAST")
     [[ -n "$REVIEW_PHONE" ]] && REVIEW_FIELDS+=(--contact-phone "$REVIEW_PHONE")
     if [[ -n "$REVIEW_USER" && -n "$REVIEW_PASS" ]]; then
-      REVIEW_FIELDS+=(--demo-account-name "$REVIEW_USER" --demo-account-password "$REVIEW_PASS" --demo-account-required)
+      REVIEW_FIELDS+=(--demo-account-name "$REVIEW_USER" --demo-account-password "$REVIEW_PASS" --demo-account-required true)
+    else
+      REVIEW_FIELDS+=(--demo-account-required false)
     fi
     [[ -n "$REVIEW_NOTES" ]] && REVIEW_FIELDS+=(--notes "$REVIEW_NOTES")
 
