@@ -63,6 +63,11 @@ echo "API key auth: OK"
 
 cfg() { jq -r "$1" "$CONFIG"; }
 cfg_bool() { jq -e "$1" "$CONFIG" >/dev/null 2>&1; }
+cfg_bool_default() {
+  local query="$1"
+  local default_value="$2"
+  jq -r "if $query != null then $query | tostring else \"$default_value\" end" "$CONFIG"
+}
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -74,6 +79,62 @@ log()  { echo -e "${GREEN}[OK]${NC} $1"; }
 warn() { echo -e "${YELLOW}[SKIP]${NC} $1"; }
 fail() { echo -e "${RED}[FAIL]${NC} $1"; }
 step() { echo -e "\n${YELLOW}==>${NC} $1"; }
+
+ALL_TERRITORIES_CSV=""
+TERR_FETCH_ERROR=""
+
+fetch_all_territories_csv() {
+  if [[ -n "${ALL_TERRITORIES_CSV}" ]]; then
+    printf '%s' "$ALL_TERRITORIES_CSV"
+    return 0
+  fi
+
+  local TERR_OUTPUT
+  if ! TERR_OUTPUT=$(asc pricing territories list --paginate --output json 2>&1); then
+    TERR_FETCH_ERROR="$TERR_OUTPUT"
+    return 1
+  fi
+
+  local TERR_LIST
+  if ! TERR_LIST=$(printf '%s\n' "$TERR_OUTPUT" | jq -r '.data | map(.id) | join(",")'); then
+    TERR_FETCH_ERROR="Could not parse territory catalog JSON."
+    return 1
+  fi
+
+  if [[ -z "$TERR_LIST" ]]; then
+    TERR_FETCH_ERROR="Territory catalog returned no entries."
+    return 1
+  fi
+
+  ALL_TERRITORIES_CSV="$TERR_LIST"
+  printf '%s' "$ALL_TERRITORIES_CSV"
+  return 0
+}
+
+resolve_territory_arg() {
+  local include_flag="$1"
+  local configured="$2"
+
+  if [[ "$include_flag" == "true" ]]; then
+    local list
+    if list=$(fetch_all_territories_csv); then
+      printf '%s' "$list"
+      return 0
+    fi
+    return 1
+  fi
+
+  if [[ -n "$configured" ]]; then
+    printf '%s' "$configured"
+    return 0
+  fi
+
+  return 2
+}
+
+is_zero_price_value() {
+  [[ "$1" =~ ^0+(\.0+)?$ ]]
+}
 
 APP_ID=$(cfg '.app.id // empty')
 APP_NAME=$(cfg '.app.name')
@@ -398,7 +459,7 @@ if [[ "$PRIVACY_ENABLED" == "true" ]]; then
     fi
 
     PRIVACY_READY=true
-    if [[ ${#WEB_STATUS_ARGS[@]} -gt 0 ]]; then
+    if [[ ${#WEB_STATUS_ARGS[@]:-0} -gt 0 ]]; then
       WEB_STATUS_OK=true
       if ! asc web auth status "${WEB_STATUS_ARGS[@]}" --output json >/dev/null 2>&1; then
         WEB_STATUS_OK=false
@@ -427,7 +488,7 @@ if [[ "$PRIVACY_ENABLED" == "true" ]]; then
 
     if [[ "$PRIVACY_READY" == "true" ]]; then
       PRIVACY_PLAN_ARGS=(--app "$APP_ID" --file "$PRIVACY_FILE" --output json)
-      if [[ ${#WEB_PRIVACY_ARGS[@]} -gt 0 ]]; then
+      if [[ ${#WEB_PRIVACY_ARGS[@]:-0} -gt 0 ]]; then
         PRIVACY_PLAN_CMD=(asc web privacy plan "${PRIVACY_PLAN_ARGS[@]}" "${WEB_PRIVACY_ARGS[@]}")
       else
         PRIVACY_PLAN_CMD=(asc web privacy plan "${PRIVACY_PLAN_ARGS[@]}")
@@ -446,7 +507,7 @@ if [[ "$PRIVACY_ENABLED" == "true" ]]; then
           PRIVACY_APPLY_ARGS+=(--allow-deletes --confirm)
         fi
 
-        if [[ ${#WEB_PRIVACY_ARGS[@]} -gt 0 ]]; then
+        if [[ ${#WEB_PRIVACY_ARGS[@]:-0} -gt 0 ]]; then
           PRIVACY_APPLY_CMD=(asc web privacy apply "${PRIVACY_APPLY_ARGS[@]}" "${WEB_PRIVACY_ARGS[@]}")
         else
           PRIVACY_APPLY_CMD=(asc web privacy apply "${PRIVACY_APPLY_ARGS[@]}")
@@ -459,7 +520,7 @@ if [[ "$PRIVACY_ENABLED" == "true" ]]; then
 
           if [[ "$PRIVACY_PUBLISH" == "true" ]]; then
             PRIVACY_PUBLISH_ARGS=(--app "$APP_ID" --confirm --output json)
-            if [[ ${#WEB_PRIVACY_ARGS[@]} -gt 0 ]]; then
+            if [[ ${#WEB_PRIVACY_ARGS[@]:-0} -gt 0 ]]; then
               PRIVACY_PUBLISH_CMD=(asc web privacy publish "${PRIVACY_PUBLISH_ARGS[@]}" "${WEB_PRIVACY_ARGS[@]}")
             else
               PRIVACY_PUBLISH_CMD=(asc web privacy publish "${PRIVACY_PUBLISH_ARGS[@]}")
@@ -487,34 +548,98 @@ step "Setting pricing..."
 
 BASE_TERRITORY=$(cfg '.pricing.base_territory // empty')
 PRICE_TIER=$(cfg '.pricing.price_tier // empty')
-PRICE_TIER=${PRICE_TIER:-0}
+PRICE_VALUE=$(cfg '.pricing.price // empty')
 START_DATE=$(date -u +"%Y-%m-%d")
 
-PRICE_ARGS=(--app "$APP_ID" --base-territory "$BASE_TERRITORY" --tier "$PRICE_TIER" --start-date "$START_DATE" --output json)
+PRICE_ARGS=(--app "$APP_ID" --base-territory "$BASE_TERRITORY" --start-date "$START_DATE" --output json)
+if [[ -n "$PRICE_TIER" ]]; then
+  PRICE_ARGS+=(--tier "$PRICE_TIER")
+elif [[ -n "$PRICE_VALUE" ]]; then
+  if is_zero_price_value "$PRICE_VALUE"; then
+    PRICE_ARGS+=(--tier "0")
+  else
+    PRICE_ARGS+=(--price "$PRICE_VALUE")
+  fi
+else
+  PRICE_ARGS+=(--tier "0")
+fi
+
 if ! PRICE_ERR=$(asc pricing schedule create "${PRICE_ARGS[@]}" 2>&1); then
   warn "Could not set pricing schedule (check: asc pricing schedule create --help): $PRICE_ERR"
 else
-  log "Pricing set (tier: $PRICE_TIER)"
+  log "Pricing set"
 fi
 
 # Set availability
-AVAIL_NEW=$(cfg '.pricing.availability.available_in_new_territories')
-TERRITORY_COUNT=$(jq '.pricing.availability.territories | length' "$CONFIG")
-  AVAIL_ARGS=(--app "$APP_ID" --available true --available-in-new-territories "$AVAIL_NEW" --output json)
-  if [[ "$TERRITORY_COUNT" -gt 0 ]]; then
-    TERRITORIES=$(jq -r '.pricing.availability.territories | join(",")' "$CONFIG")
-    AVAIL_ARGS+=(--territory "$TERRITORIES")
-  fi
+PRICING_AVAIL_NEW=$(cfg_bool_default '.pricing.availability.available_in_new_territories' 'true')
+PRICING_AVAIL_INCLUDE_ALL=$(cfg_bool_default '.pricing.availability.include_all' 'true')
+PRICING_AVAIL_TERRITORIES=$(jq -r '
+  if (.pricing.availability.territories // []) | length > 0 then
+    (.pricing.availability.territories | join(","))
+  else
+    ""
+  end
+' "$CONFIG")
 
-if ! AVAIL_ERR=$(asc pricing availability set "${AVAIL_ARGS[@]}" 2>&1); then
-  warn "Could not set availability: $AVAIL_ERR"
+PRICING_TERRITORY_ARG=""
+PRICING_TERR_EXIT=0
+if PRICING_TERRITORY_ARG=$(resolve_territory_arg "$PRICING_AVAIL_INCLUDE_ALL" "$PRICING_AVAIL_TERRITORIES"); then
+  PRICING_TERR_EXIT=0
 else
-  log "Availability configured"
+  PRICING_TERR_EXIT=$?
+fi
+
+if [[ "$PRICING_TERR_EXIT" -eq 0 && -n "$PRICING_TERRITORY_ARG" ]]; then
+  AVAIL_ARGS=(--app "$APP_ID" --available true --available-in-new-territories "$PRICING_AVAIL_NEW" --output json --territory "$PRICING_TERRITORY_ARG")
+  if ! AVAIL_ERR=$(asc pricing availability set "${AVAIL_ARGS[@]}" 2>&1); then
+    warn "Could not set pricing availability: $AVAIL_ERR"
+  else
+    log "Pricing availability configured"
+  fi
+else
+  if [[ "$PRICING_TERR_EXIT" -eq 1 ]]; then
+    warn "Skipping pricing availability update; could not fetch territory catalog. ${TERR_FETCH_ERROR:-}"
+  else
+    warn "Skipping pricing availability update; no territories configured and include_all=false."
+  fi
 fi
 
 # ── Step 8: Create subscription groups & subscriptions ───────────────────────
 
 step "Setting up subscriptions..."
+
+SUBS_AVAIL_NEW=$(cfg_bool_default '.subscriptions.availability.available_in_new_territories' "$PRICING_AVAIL_NEW")
+SUBS_AVAIL_INCLUDE_ALL=$(cfg_bool_default '.subscriptions.availability.include_all' "$PRICING_AVAIL_INCLUDE_ALL")
+SUBS_AVAIL_TERRITORIES=$(jq -r '
+  if (.subscriptions.availability.territories // []) | length > 0 then
+    (.subscriptions.availability.territories | join(","))
+  else
+    ""
+  end
+' "$CONFIG")
+
+SUBS_TERRITORY_ARG=""
+SUBS_TERR_EXIT=0
+if SUBS_TERRITORY_ARG=$(resolve_territory_arg "$SUBS_AVAIL_INCLUDE_ALL" "$SUBS_AVAIL_TERRITORIES"); then
+  SUBS_TERR_EXIT=0
+else
+  SUBS_TERR_EXIT=$?
+  if [[ "$SUBS_TERR_EXIT" -eq 2 && -n "$PRICING_TERRITORY_ARG" ]]; then
+    SUBS_TERRITORY_ARG="$PRICING_TERRITORY_ARG"
+    SUBS_TERR_EXIT=0
+  fi
+fi
+
+SUBS_AVAIL_ENABLED=false
+if [[ "$SUBS_TERR_EXIT" -eq 0 && -n "$SUBS_TERRITORY_ARG" ]]; then
+  SUBS_AVAIL_ENABLED=true
+else
+  if [[ "$SUBS_TERR_EXIT" -eq 1 ]]; then
+    warn "Skipping subscription availability updates; could not fetch territory catalog. ${TERR_FETCH_ERROR:-}"
+  elif [[ "$SUBS_TERR_EXIT" -eq 2 ]]; then
+    warn "Skipping subscription availability updates; no territories configured and include_all=false."
+  fi
+fi
 
 SUB_GROUP_COUNT=$(jq '.subscriptions.groups | length' "$CONFIG")
 for ((g=0; g<SUB_GROUP_COUNT; g++)); do
@@ -612,12 +737,11 @@ for ((g=0; g<SUB_GROUP_COUNT; g++)); do
     fi
 
     log "Subscription '$SUB_REF' ID: $SUB_ID"
-    SUB_AVAIL_ARGS=(--id "$SUB_ID" --available-in-new-territories true --output json)
-    if [[ -n "${TERRITORIES:-}" ]]; then
-      SUB_AVAIL_ARGS+=(--territory "$TERRITORIES")
-    fi
-    if ! SUB_AVAIL_ERR=$(asc subscriptions availability set "${SUB_AVAIL_ARGS[@]}" 2>&1); then
-      warn "Could not set subscription availability for '$SUB_REF': $SUB_AVAIL_ERR"
+    if [[ "$SUBS_AVAIL_ENABLED" == "true" ]]; then
+      SUB_AVAIL_ARGS=(--id "$SUB_ID" --available-in-new-territories "$SUBS_AVAIL_NEW" --output json --territory "$SUBS_TERRITORY_ARG")
+      if ! SUB_AVAIL_ERR=$(asc subscriptions availability set "${SUB_AVAIL_ARGS[@]}" 2>&1); then
+        warn "Could not set subscription availability for '$SUB_REF': $SUB_AVAIL_ERR"
+      fi
     fi
 
     # Subscription prices

@@ -1,9 +1,9 @@
 {
   "app": {
-    "id": "6760187365",
-    "name": "Chicken Feet Identifier",
-    "bundle_id": "com.test1.chickenfeet",
-    "sku": "com.test1.chickenfeet",
+    "id": "",
+    "name": "Sports Card 5",
+    "bundle_id": "com.amian.sportscard",
+    "sku": "com.amian.sportscard",
     "platform": "IOS",
     "primary_locale": "en-US",
     "content_rights": "DOES_NOT_USE_THIRD_PARTY_CONTENT"
@@ -11,37 +11,35 @@
 
   "version": {
     "version_string": "1.0",
-    "copyright": "Chicken Ltd",
+    "copyright": "Mian Ltd",
     "release_type": "MANUAL"
-  },
+},
 
   "categories": {
-    "primary": "REFERENCE",
+    "primary": "SPORTS",
     "primary_subcategory_one": "",
     "primary_subcategory_two": "",
-    "secondary": "UTILITIES",
-    "secondary_subcategory_one": "",
+    "secondary": "GAMES",
+    "secondary_subcategory_one": "GAMES_CARD",
     "secondary_subcategory_two": ""
   },
 
   "localizations": [
     {
       "locale": "en-US",
-      "subtitle": "Smart Poultry Footy",
-      "description": "Chicken Feet Identifier is designed to help you identify and document chicken foot characteristics quickly and accurately. With a simple and intuitive experience, the app is useful for poultry keepers, breeders, farmers, and anyone managing bird records. From checking visible traits to keeping your workflow organized, Chicken Feet Identifier makes poultry identification more efficient and accessible.",
-      "keywords": "chicken feet",
-      "whats_new": "This update includes performance improvements and minor fixes to make Chicken Feet Identifier faster, smoother, and more reliable.",
-      "promotional_text": "A simple and efficient way to identify chicken feet and support your poultry workflow.",
-      "support_url": "https://chicken.com/contact/?app=chicken-feet-identifier",
+      "subtitle": "TODO",
+      "description": "TODO TODO TODO TODO TODO TODO TODO",
+      "keywords": "",
+      "whats_new": "This update includes performance improvements and minor fixes to make the app faster, smoother, and more reliable.",
+      "promotional_text": "Scan sports cards to identify key details, estimate value, review condition, and keep your collection organized in one place.",
+      "support_url": "https://anummian.com/contact/?app=Sports%20Card%20Scanner",
       "marketing_url": "",
-      "privacy_policy_url": "https://chicken.github.io/image-privacy"
+      "privacy_policy_url": "https://amian.github.io/image-privacy"
     }
   ],
 
   "privacy": {
     "enabled": true,
-    "apple_id": "",
-    "two_factor_code": "",
     "publish": true,
     "allow_deletes": true,
     "data_usages": [
@@ -129,27 +127,20 @@
   "pricing": {
     "base_territory": "USA",
     "price_tier": "0",
+    "price": "0",
     "availability": {
       "available_in_new_territories": true,
-      "territories": [
-        "ABW","AFG","AGO","AIA","ALA","ALB","AND","ARE","ARG","ARM","ASM","ATA","ATF","ATG","AUS","AUT","AZE","BDI","BEL","BEN","BES",
-        "BFA","BGD","BGR","BHR","BHS","BIH","BLM","BLR","BLZ","BMU","BOL","BRA","BRB","BRN","BTN","BVT","BWA","CAF","CAN","CCK",
-        "CHE","CHL","CHN","CIV","CMR","COD","COG","COK","COL","COM","CPV","CRI","CUB","CUW","CXR","CYM","CYP","CZE","DEU","DJI",
-        "DMA","DNK","DOM","DZA","ECU","EGY","ERI","ESH","ESP","EST","ETH","FIN","FJI","FLK","FRA","FRO","FSM","GAB","GBR","GEO",
-        "GGY","GHA","GIB","GIN","GLP","GMB","GNB","GNQ","GRC","GRD","GRL","GTM","GUF","GUM","GUY","HKG","HMD","HND","HRV","HTI",
-        "HUN","IDN","IMN","IND","IOT","IRL","IRN","IRQ","ISL","ISR","ITA","JAM","JEY","JOR","JPN","KAZ","KEN","KGZ","KHM","KIR",
-        "KNA","KOR","KWT","LAO","LBN","LBR","LBY","LCA","LIE","LKA","LSO","LTU","LUX","LVA","MAC","MAF","MAR","MCO","MDA","MDG",
-        "MDV","MEX","MHL","MKD","MLI","MLT","MMR","MNE","MNG","MNP","MOZ","MRT","MSR","MTQ","MUS","MWI","MYS","MYT","NAM","NCL",
-        "NER","NFK","NGA","NIC","NIU","NLD","NOR","NPL","NRU","NZL","OMN","PAK","PAN","PCN","PER","PHL","PLW","PNG","POL","PRI",
-        "PRK","PRT","PRY","PSE","PYF","QAT","REU","ROU","RUS","RWA","SAU","SDN","SEN","SGP","SGS","SHN","SJM","SLB","SLE","SLV",
-        "SMR","SOM","SPM","SRB","SSD","STP","SUR","SVK","SVN","SWE","SWZ","SXM","SYC","SYR","TCA","TCD","TGO","THA","TJK","TKL",
-        "TKM","TLS","TON","TTO","TUN","TUR","TUV","TWN","TZA","UGA","UKR","UMI","URY","USA","UZB","VAT","VCT","VEN","VGB","VIR",
-        "VNM","VUT","WLF","WSM","YEM","ZAF","ZMB","ZWE"
-      ]
+      "include_all": true,
+      "territories": []
     }
   },
 
   "subscriptions": {
+    "availability": {
+      "available_in_new_territories": true,
+      "include_all": true,
+      "territories": []
+    },
     "groups": [
       {
         "reference_name": "Premium Access",
@@ -163,13 +154,13 @@
         "subscriptions": [
           {
             "ref_name": "Weekly Premium",
-            "product_id": "com.chickenfeet.weekly",
+            "product_id": "com.amian.sportscard.weekly",
             "subscription_period": "ONE_WEEK",
             "family_sharable": false,
             "prices": [
               {
                 "territory": "USA",
-                "tier": "1"
+                "tier": "88"
               }
             ],
             "localizations": [
@@ -182,13 +173,13 @@
           },
           {
             "ref_name": "Yearly Premium",
-            "product_id": "com.chickenfeet.yearly",
+            "product_id": "com.amian.sportscard.yearly",
             "subscription_period": "ONE_YEAR",
             "family_sharable": false,
             "prices": [
               {
                 "territory": "USA",
-                "tier": "5"
+                "tier": "227"
               }
             ],
             "localizations": [
@@ -214,10 +205,10 @@
   },
 
   "review_info": {
-    "contact_first_name": "Chicken",
-    "contact_last_name": "Feet",
-    "contact_phone": "+447861980199",
-    "contact_email": "chicken@mail.com",
+    "contact_first_name": "Anum",
+    "contact_last_name": "Mian",
+    "contact_phone": "+447801980190",
+    "contact_email": "anummian@hotmail.com",
     "demo_username": "",
     "demo_password": "",
     "notes": ""
