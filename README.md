@@ -16,13 +16,14 @@ Use `setup_app.sh` with `app_config.json` to script bundle registration, metadat
 1. Copy and edit `app_config.json` with your app metadata, pricing, subscriptions, privacy, and review data.
 2. Validate inputs: `bash -n setup_app.sh` and `jq . app_config.json >/dev/null`.
 3. Run `./setup_app.sh app_config.json` to create a new app, or `./setup_app.sh --update app_config.json` to update an existing one.
-4. For App Privacy, provide `privacy.apple_id` (and optionally `privacy.two_factor_code`) if no cached web auth session exists.
+4. In create mode, app creation runs interactively and prompts for Apple ID + 2FA.
+5. For App Privacy, provide `privacy.apple_id` (and optionally `privacy.two_factor_code`) if no cached web auth session exists.
 
 ## Configuration Layout
 - Keep config keys in `snake_case`.
 - Keep helper-driven script values centralized and quoted in `setup_app.sh`.
 - Include at least one complete example for each new config field in `app_config.json`.
-- Availability can be explicit by territory list or via generated full-territory input when supported by the script flow.
+- Pricing and subscription availability can be driven by explicit territory lists or by auto-fetching all territories with `*.availability.include_all` (defaults to `true`).
 
 ## Testing And Validation
 1. `bash -n setup_app.sh`
