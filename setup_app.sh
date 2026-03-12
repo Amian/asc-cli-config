@@ -165,17 +165,16 @@ if [[ "$MODE" == "create" ]]; then
   echo "  (Sessions are cached, so future runs won't need 2FA again.)"
   echo ""
 
-  # Capture output to extract app ID from create response
-  APP_CREATE_OUTPUT=$(asc apps create \
+  # Run create interactively so Apple ID/2FA prompts are visible.
+  # We'll resolve APP_ID by bundle ID after this step for reliability.
+  if ! asc apps create \
     --name "$APP_NAME" \
     --bundle-id "$BUNDLE_ID" \
     --sku "$SKU" \
     --platform "$PLATFORM" \
-    --primary-locale "$PRIMARY_LOCALE" 2>&1) || true
-  echo "$APP_CREATE_OUTPUT" | grep -v "Authenticated as"
-
-  # Try to extract app ID directly from the create output
-  APP_ID=$(echo "$APP_CREATE_OUTPUT" | grep -o '"id":"[0-9]*"' | head -1 | grep -o '[0-9]*' || true)
+    --primary-locale "$PRIMARY_LOCALE"; then
+    warn "App creation command did not complete successfully (continuing with app lookup by bundle ID)"
+  fi
 else
   step "Update mode — looking up existing app..."
 fi
@@ -477,8 +476,9 @@ if [[ "$PRIVACY_ENABLED" == "true" ]]; then
         PRIVACY_READY=false
       else
         echo "  Authenticating asc web session for App Privacy..."
-        if ! WEB_LOGIN_ERR=$(asc web auth login "${WEB_LOGIN_ARGS[@]}" --output json 2>&1); then
-          warn "Could not authenticate asc web session for App Privacy: $WEB_LOGIN_ERR"
+        # Run login interactively so 2FA prompts are visible when needed.
+        if ! asc web auth login "${WEB_LOGIN_ARGS[@]}" --output json; then
+          warn "Could not authenticate asc web session for App Privacy"
           PRIVACY_READY=false
         else
           log "App Privacy web session authenticated"

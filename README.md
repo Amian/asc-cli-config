@@ -1,34 +1,42 @@
 # App Store Connect Automation
-This repository hosts a lightweight Bash workflow for configuring App Store Connect metadata, pricing, subscriptions, and review settings through the `asc` CLI.
+
+Use `setup_app.sh` with `app_config.json` to script bundle registration, metadata updates, pricing, subscriptions, privacy, and review details through the [`asc`](https://github.com/rudrankriyam/App-Store-Connect-CLI) CLI.
 
 ## Overview
-- `setup_app.sh` is the orchestrator: it reads an `app_config.json` payload, creates or updates an app bundle, and applies metadata, pricing, availability, subscriptions, privacy, and review info.
-- `app_config.json` is the canonical example configuration. Update it with your values and any new schema fields before running the script so the automation stays in sync with your requirements.
+- `setup_app.sh` is the orchestrator: it reads `app_config.json`, creates or updates an app, and applies metadata, pricing, availability, subscriptions, privacy, and review info.
+- `app_config.json` is the canonical example configuration; keep it in sync with script capabilities.
 
 ## Prerequisites
-- `asc` (App Store Connect CLI) and an API key configured via `asc auth login`.
-- `jq` for parsing `app_config.json`.
-- A POSIX-compatible shell that respects `set -euo pipefail`.
+- [`asc`](https://github.com/rudrankriyam/App-Store-Connect-CLI) installed and authenticated (`asc auth login --key-id <KEY_ID> --issuer-id <ISSUER_ID> --private-key /path/to/AuthKey_XXXX.p8`).
+- [`jq`](https://stedolan.github.io/jq/) for parsing the JSON config.
+- A registered App Store Connect API key (https://appstoreconnect.apple.com/access/integrations/api) with Admin permissions.
+- Bash or another POSIX shell that honors `set -euo pipefail`.
 
-## Usage
-1. `./setup_app.sh app_config.json` – create a new app or apply a full configuration baseline.
-2. `./setup_app.sh --update app_config.json` – refresh metadata for an existing bundle ID.
-3. `bash -n setup_app.sh` – syntax-check the workflow before running it.
-4. `jq . app_config.json >/dev/null` – validate the JSON payload.
-5. `shellcheck setup_app.sh` (optional) – lint the script for stylistic issues.
+## Quick Start
+1. Copy and edit `app_config.json` with your app metadata, pricing, subscriptions, privacy, and review data.
+2. Validate inputs: `bash -n setup_app.sh` and `jq . app_config.json >/dev/null`.
+3. Run `./setup_app.sh app_config.json` to create a new app, or `./setup_app.sh --update app_config.json` to update an existing one.
+4. For App Privacy, provide `privacy.apple_id` (and optionally `privacy.two_factor_code`) if no cached web auth session exists.
 
 ## Configuration Layout
-- Keep high-level script values (app ID, version, territory flags) in uppercase names and read them via `cfg` helpers in `setup_app.sh`.
-- `app_config.json` uses `snake_case` fields; add at least one complete example for every new field you introduce so the sample config always reflects reality.
-- Availability sections can now source territory lists either explicitly or by fetching the `asc pricing territories list` catalog when `include_all` is `true`.
+- Keep config keys in `snake_case`.
+- Keep helper-driven script values centralized and quoted in `setup_app.sh`.
+- Include at least one complete example for each new config field in `app_config.json`.
+- Availability can be explicit by territory list or via generated full-territory input when supported by the script flow.
 
-## Testing & Validation
+## Testing And Validation
 1. `bash -n setup_app.sh`
 2. `jq . app_config.json >/dev/null`
-3. Run the workflow against a non-production bundle to ensure the CLI behaves as expected before touching production metadata.
+3. Optionally run `shellcheck setup_app.sh`
+4. Test against a non-production bundle before production metadata changes.
+
+## Follow-Up
+- Upload screenshots (`asc screenshots upload`).
+- Upload the build via Xcode or Transporter.
+- Submit for review (`asc submit`) when metadata and build are ready.
 
 ## Contributing
 - Keep helper functions short and self-explanatory (`log`, `warn`, `cfg`, etc.).
-- Prefer quoting every variable expansion and using two-space indentation.
-- Document schema changes by updating `app_config.json` so users can copy a working example.
-- Target one logical change per commit with a conventional-style message (`fix:`, `chore:`, etc.).
+- Prefer quoting variable expansions.
+- Document schema changes by updating `app_config.json`.
+- Keep one logical change per commit with a clear commit message.
