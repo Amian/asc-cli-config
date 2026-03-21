@@ -1,0 +1,216 @@
+{
+  "app": {
+    "id": "",
+    "name": "chickenidentifier 5",
+    "bundle_id": "com.janedoe.chickenidentifier",
+    "sku": "com.janedoe.chickenidentifier",
+    "platform": "IOS",
+    "primary_locale": "en-US",
+    "content_rights": "DOES_NOT_USE_THIRD_PARTY_CONTENT"
+  },
+
+  "version": {
+    "version_string": "1.0",
+    "copyright": "Jane Doe Ltd",
+    "release_type": "MANUAL"
+},
+
+  "categories": {
+    "primary": "SPORTS",
+    "primary_subcategory_one": "",
+    "primary_subcategory_two": "",
+    "secondary": "GAMES",
+    "secondary_subcategory_one": "GAMES_CARD",
+    "secondary_subcategory_two": ""
+  },
+
+  "localizations": [
+    {
+      "locale": "en-US",
+      "subtitle": "TODO",
+      "description": "TODO TODO TODO TODO TODO TODO TODO",
+      "keywords": "",
+      "whats_new": "This update includes performance improvements and minor fixes to make the app faster, smoother, and more reliable.",
+      "promotional_text": "Scan chickenidentifiers to identify key details, estimate value, review condition, and keep your collection organized in one place.",
+      "support_url": "https://janedoe.example/contact/?app=chickenidentifier",
+      "marketing_url": "",
+      "privacy_policy_url": "https://janedoe.github.io/image-privacy"
+    }
+  ],
+
+  "privacy": {
+    "enabled": true,
+    "publish": true,
+    "allow_deletes": true,
+    "data_usages": [
+      {
+        "category": "CRASH_DATA",
+        "purposes": ["APP_FUNCTIONALITY"],
+        "dataProtections": ["DATA_LINKED_TO_YOU"]
+      },
+      {
+        "category": "DEVICE_ID",
+        "purposes": ["ANALYTICS"],
+        "dataProtections": ["DATA_LINKED_TO_YOU"]
+      },
+      {
+        "category": "DEVICE_ID",
+        "purposes": ["DEVELOPERS_ADVERTISING"],
+        "dataProtections": ["DATA_NOT_LINKED_TO_YOU"]
+      },
+      {
+        "category": "DEVICE_ID",
+        "dataProtections": ["DATA_USED_TO_TRACK_YOU"]
+      },
+      {
+        "category": "OTHER_DIAGNOSTIC_DATA",
+        "purposes": ["ANALYTICS"],
+        "dataProtections": ["DATA_LINKED_TO_YOU"]
+      },
+      {
+        "category": "OTHER_USER_CONTENT",
+        "purposes": ["APP_FUNCTIONALITY"],
+        "dataProtections": ["DATA_LINKED_TO_YOU"]
+      },
+      {
+        "category": "PERFORMANCE_DATA",
+        "purposes": ["ANALYTICS"],
+        "dataProtections": ["DATA_LINKED_TO_YOU"]
+      },
+      {
+        "category": "PHOTOS_OR_VIDEOS",
+        "purposes": ["APP_FUNCTIONALITY"],
+        "dataProtections": ["DATA_LINKED_TO_YOU"]
+      },
+      {
+        "category": "PRODUCT_INTERACTION",
+        "purposes": ["ANALYTICS"],
+        "dataProtections": ["DATA_LINKED_TO_YOU"]
+      },
+      {
+        "category": "PRODUCT_INTERACTION",
+        "purposes": ["DEVELOPERS_ADVERTISING"],
+        "dataProtections": ["DATA_NOT_LINKED_TO_YOU"]
+      },
+      {
+        "category": "PRODUCT_INTERACTION",
+        "dataProtections": ["DATA_USED_TO_TRACK_YOU"]
+      }
+    ]
+  },
+
+  "age_rating": {
+    "alcohol_tobacco_or_drug_use_or_references": "NONE",
+    "contests": "NONE",
+    "gambling_simulated": "NONE",
+    "guns_or_other_weapons": "NONE",
+    "medical_or_treatment_information": "NONE",
+    "profanity_or_crude_humor": "NONE",
+    "sexual_content_graphic_and_nudity": "NONE",
+    "sexual_content_or_nudity": "NONE",
+    "horror_or_fear_themes": "NONE",
+    "mature_or_suggestive_themes": "NONE",
+    "violence_cartoon_or_fantasy": "NONE",
+    "violence_realistic": "NONE",
+    "violence_realistic_prolonged_graphic_or_sadistic": "NONE",
+    "advertising": false,
+    "age_assurance": false,
+    "gambling": false,
+    "health_or_wellness_topics": false,
+    "loot_box": false,
+    "messaging_and_chat": false,
+    "parental_controls": false,
+    "unrestricted_web_access": false,
+    "user_generated_content": false
+  },
+
+  "pricing": {
+    "base_territory": "USA",
+    "price_tier": "0",
+    "price": "0",
+    "availability": {
+      "available_in_new_territories": true,
+      "include_all": true,
+      "territories": []
+    }
+  },
+
+  "subscriptions": {
+    "availability": {
+      "available_in_new_territories": true,
+      "include_all": true,
+      "territories": []
+    },
+    "groups": [
+      {
+        "reference_name": "Premium Access",
+        "localizations": [
+          {
+            "locale": "en-US",
+            "name": "Premium Access",
+            "custom_app_name": ""
+          }
+        ],
+        "subscriptions": [
+          {
+            "ref_name": "Weekly Premium",
+            "product_id": "com.janedoe.chickenidentifier.weekly",
+            "subscription_period": "ONE_WEEK",
+            "family_sharable": false,
+            "prices": [
+              {
+                "territory": "USA",
+                "tier": "88"
+              }
+            ],
+            "localizations": [
+              {
+                "locale": "en-US",
+                "name": "Weekly Premium",
+                "description": "Full access for one week."
+              }
+            ]
+          },
+          {
+            "ref_name": "Yearly Premium",
+            "product_id": "com.janedoe.chickenidentifier.yearly",
+            "subscription_period": "ONE_YEAR",
+            "family_sharable": false,
+            "prices": [
+              {
+                "territory": "USA",
+                "tier": "227"
+              }
+            ],
+            "localizations": [
+              {
+                "locale": "en-US",
+                "name": "Yearly Premium",
+                "description": "Full access for one year."
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+
+  "in_app_purchases": [],
+
+  "encryption": {
+    "contains_proprietary_cryptography": false,
+    "contains_third_party_cryptography": false,
+    "available_on_french_store": true,
+    "description": "This app does not use encryption."
+  },
+
+  "review_info": {
+    "contact_first_name": "Jane",
+    "contact_last_name": "Doe",
+    "contact_phone": "+447812345678",
+    "contact_email": "janedoe@example.com",
+    "demo_username": "",
+    "demo_password": "",
+    "notes": ""
+  }
+}
